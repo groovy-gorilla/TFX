@@ -40,36 +40,36 @@ add_executable(IndigoEngine main.cpp
         Graphics/Vulkan/Core/VulkanDevice.cpp
         Graphics/Vulkan/Core/VulkanSwapchain.h
         Graphics/Vulkan/Core/VulkanSwapchain.cpp
-        Graphics/Vulkan/SceneRendering/VulkanSceneRenderPass.h
-        Graphics/Vulkan/SceneRendering/VulkanSceneRenderPass.cpp
+        Graphics/Vulkan/ScenePass/VulkanSceneRenderPass.h
+        Graphics/Vulkan/ScenePass/VulkanSceneRenderPass.cpp
         Graphics/Vulkan/VulkanRenderer.h
         Graphics/Vulkan/VulkanRenderer.cpp
         Graphics/Graphics.h
         Graphics/Graphics.cpp
         Graphics/Vulkan/Core/VulkanDebug.h
         Graphics/Vulkan/Core/VulkanDebug.cpp
-        Graphics/Vulkan/SceneRendering/VulkanScenePipeline.h
-        Graphics/Vulkan/SceneRendering/VulkanScenePipeline.cpp
+        Graphics/Vulkan/ScenePass/VulkanScenePipeline.h
+        Graphics/Vulkan/ScenePass/VulkanScenePipeline.cpp
         Engine/Core/ApplicationDesc.h
-        Graphics/Vulkan/SceneRendering/VulkanSceneResources.h
-        Graphics/Vulkan/SceneRendering/VulkanSceneResources.cpp
+        Graphics/Vulkan/ScenePass/VulkanSceneResources.h
+        Graphics/Vulkan/ScenePass/VulkanSceneResources.cpp
         Graphics/Vulkan/Utils/VulkanUtils.h
         Graphics/Vulkan/Utils/VulkanUtils.cpp
-        Graphics/Vulkan/PostRendering/VulkanPostRenderPass.cpp
-        Graphics/Vulkan/PostRendering/VulkanPostRenderPass.h
-        Graphics/Vulkan/Core/VulkanSampler.h
-        Graphics/Vulkan/Core/VulkanSampler.cpp
+        Graphics/Vulkan/PostProcessPass/VulkanPostRenderPass.cpp
+        Graphics/Vulkan/PostProcessPass/VulkanPostRenderPass.h
         Graphics/Vulkan/Core/VulkanValidation.h
         Graphics/Vulkan/Core/VulkanValidation.cpp
         Graphics/Vulkan/Resources/RenderTarget.h
-        Graphics/Vulkan/PostRendering/VulkanPostResources.h
-        Graphics/Vulkan/PostRendering/VulkanPostResources.cpp
+        Graphics/Vulkan/PostProcessPass/VulkanPostResources.h
+        Graphics/Vulkan/PostProcessPass/VulkanPostResources.cpp
         Graphics/Vulkan/Core/VulkanCommands.h
         Graphics/Vulkan/Core/VulkanCommands.cpp
         Graphics/Vulkan/Core/VulkanSync.h
         Graphics/Vulkan/Core/VulkanSync.cpp
         Graphics/Vulkan/Core/VulkanQueues.h
         Graphics/Vulkan/Core/VulkanQueues.cpp
+        Graphics/Vulkan/Resources/VulkanTextureDescriptor.h
+        Graphics/Vulkan/Resources/VulkanTextureDescriptor.cpp
 )
 
 

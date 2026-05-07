@@ -4,7 +4,7 @@
 #include <iostream>
 #include <ostream>
 
-void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat) {
+void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat, RenderTarget& sceneColor, RenderTarget& sceneDepth) {
 
     // RENDER PASS
     VkAttachmentDescription colorAttachment{};
@@ -38,9 +38,15 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
     VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass));
 
+    // DESCRIPTOR
+    m_sceneDescriptor.Create(device, sceneColor, sceneDepth);
+    m_descriptorSetLayout = m_sceneDescriptor.GetLayout();
+
     // PIPELINE LAYOUT
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts = &m_descriptorSetLayout;
 
     vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_pipelineLayout);
 
@@ -176,6 +182,10 @@ void VulkanPostRenderPass::Render( VkCommandBuffer commandBuffer, VkFramebuffer 
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
+    VkDescriptorSet descriptorSet = m_sceneDescriptor.GetSet();
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
     vkCmdDraw(commandBuffer, 3, 1,0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
@@ -183,6 +193,8 @@ void VulkanPostRenderPass::Render( VkCommandBuffer commandBuffer, VkFramebuffer 
 }
 
 void VulkanPostRenderPass::Destroy(VkDevice device) {
+
+    m_sceneDescriptor.Destroy(device);
 
     if (m_pipeline) {
         vkDestroyPipeline(device, m_pipeline, nullptr);

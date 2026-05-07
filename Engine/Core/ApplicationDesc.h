@@ -10,29 +10,34 @@ enum class AntiAliasing {
     SSAA_TAA
 };
 
+enum class TextureFilter {
+    Nearest,
+    Linear
+};
+
 struct ApplicationDesc {
 
-    const char* title                    = "Indigo Engine";
+    const char* TITLE                   = "Indigo Engine";
 
-    uint32_t width                      = 800;
-    uint32_t height                     = 600;
+    uint32_t WIDTH                      = 800;
+    uint32_t HEIGHT                     = 600;
 
-    float scaling                       = 1.0f;
+    float SCALING                       = 1.0f;
 
-    bool fullscreen                     = true;
-    bool aspectRatio                    = false;
-    bool vsync                          = true;
+    bool FULLSCREEN                     = false;
+    bool ASPECT_RATIO                   = false;
+    bool VSYNC                          = true;
 
-    const uint32_t maxFramesInFlight    = 2;
-    VkFilter filter                     = VK_FILTER_NEAREST;
+    const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+    TextureFilter FILTER                = TextureFilter::Nearest;
 
     // AntiAliasing
-    AntiAliasing aaMode                  = AntiAliasing::SSAA;
+    AntiAliasing AA_MODE                = AntiAliasing::None;
 
     // MSAA
-    VkSampleCountFlagBits msaaSamples   = VK_SAMPLE_COUNT_1_BIT;
+    VkSampleCountFlagBits MSAA_SAMPLES  = VK_SAMPLE_COUNT_1_BIT;
 
     // SSAA
-    float ssaaScale                     = 1.0f;     // scale choice: 1.0 - 1.25 - 1.5 - 2.0
+    float SSAA_SCALE                    = 1.0f;     // scale choice: 1.0 - 1.25 - 1.5 - 2.0
 
 };

@@ -50,7 +50,7 @@ void Application::Run() {
 
         if (m_pendingFullscreen) {
             SDL_SetWindowFullscreenMode(m_window.GetHandle(), m_display.GetDisplayNativeMode());
-            SDL_SetWindowFullscreen(m_window.GetHandle(), m_desc.fullscreen);
+            SDL_SetWindowFullscreen(m_window.GetHandle(), m_desc.FULLSCREEN);
             m_pendingFullscreen = false;
         }
 

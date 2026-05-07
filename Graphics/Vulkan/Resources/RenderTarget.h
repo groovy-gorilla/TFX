@@ -1,8 +1,41 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "../../../Engine/Core/ApplicationDesc.h"
+#include "../../../Engine/Core/Error/ErrorDialog.h"
 
 struct RenderTarget {
+
+    void CreateSampler(VkDevice device, TextureFilter filter) {
+
+        VkSamplerCreateInfo sampler{};
+        sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+        switch (filter) {
+            case TextureFilter::Nearest:
+                sampler.magFilter = VK_FILTER_NEAREST;
+                sampler.minFilter = VK_FILTER_NEAREST;
+                break;
+
+            case TextureFilter::Linear:
+                sampler.magFilter = VK_FILTER_LINEAR;
+                sampler.minFilter = VK_FILTER_LINEAR;
+                break;
+        }
+
+        sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler.anisotropyEnable = VK_FALSE;
+        sampler.maxAnisotropy = 1.0f;
+        sampler.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        sampler.unnormalizedCoordinates = VK_FALSE;
+        sampler.compareEnable = VK_FALSE;
+        sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        VK_CHECK(vkCreateSampler(device, &sampler, nullptr, &Sampler));
+
+    }
 
     void Destroy(VkDevice device) noexcept {
 

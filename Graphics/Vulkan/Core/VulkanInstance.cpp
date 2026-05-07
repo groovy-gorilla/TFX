@@ -17,7 +17,7 @@ void VulkanInstance::Create(ApplicationDesc& desc) {
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = desc.title;
+    appInfo.pApplicationName = desc.TITLE;
     appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     appInfo.pEngineName = "Indigo";
     appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);

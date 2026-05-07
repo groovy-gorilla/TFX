@@ -8,8 +8,8 @@
 void VulkanRenderer::Initialize(Window& window, ApplicationDesc& desc) {
 
     VkExtent2D extent;
-    extent.width = static_cast<uint32_t>(desc.width);
-    extent.height = static_cast<uint32_t>(desc.height);
+    extent.width = static_cast<uint32_t>(desc.WIDTH);
+    extent.height = static_cast<uint32_t>(desc.HEIGHT);
 
     // CORE
     m_instance.Create(desc);
@@ -22,15 +22,15 @@ void VulkanRenderer::Initialize(Window& window, ApplicationDesc& desc) {
     m_queues.Create(m_device.Get(), m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily());
     m_swapchain.Create(m_physicalDevice.Get(), m_device.Get(), m_surface.Get(), extent, m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily());
     m_commands.Create(m_device.Get(), m_physicalDevice.GetGraphicsQueueFamily(), static_cast<uint32_t>(m_swapchain.GetImages().size()));
-    m_sync.Create(m_device.Get());
+    m_sync.Create(m_device.Get(), desc.MAX_FRAMES_IN_FLIGHT);
 
     // SCENE
-    m_sceneRenderPass.Create(m_device.Get(), m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.aaMode, desc.msaaSamples);
-    m_sceneResources.Create(m_physicalDevice.Get(), m_device.Get(), extent, m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.aaMode, desc.msaaSamples, desc.ssaaScale, m_sceneRenderPass.Get());
-    m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.aaMode, desc.msaaSamples);
+    m_sceneRenderPass.Create(m_device.Get(), m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES);
+    m_sceneResources.Create(m_physicalDevice.Get(), m_device.Get(), extent, m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES, desc.SSAA_SCALE, desc.FILTER, m_sceneRenderPass.Get());
+    m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.AA_MODE, desc.MSAA_SAMPLES);
 
     // POST
-    m_postRenderPass.Create(m_device.Get(), extent, m_swapchain.GetImageFormat());
+    m_postRenderPass.Create(m_device.Get(), extent, m_swapchain.GetImageFormat(), m_sceneResources.GetOutputColor(), m_sceneResources.GetOutputDepth());
     m_postResources.Create(m_device.Get(), m_postRenderPass.Get(), extent, m_swapchain.GetImageViews());
 
 }
@@ -42,7 +42,7 @@ void VulkanRenderer::Shutdown(ApplicationDesc& desc) {
     m_postResources.Destroy(m_device.Get());
     m_postRenderPass.Destroy(m_device.Get());
     m_scenePipeline.Destroy(m_device.Get());
-    m_sceneResources.Destroy(m_device.Get(), desc.aaMode);
+    m_sceneResources.Destroy(m_device.Get(), desc.AA_MODE);
     m_sceneRenderPass.Destroy(m_device.Get());
     m_sync.Destroy(m_device.Get());
     m_commands.Destroy(m_device.Get());
@@ -62,16 +62,27 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& d
     // RESET
     vkResetCommandBuffer(commandBuffer, 0);
 
-    // BEGIN
+    // BEGIN COMMAND BUFFER
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-    vkBeginCommandBuffer( commandBuffer, &beginInfo);
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    // SCENE PASS
+    m_sceneRenderPass.Begin(commandBuffer, m_sceneResources.GetFramebuffer(), m_sceneResources.GetExtent());
+    m_scenePipeline.Bind(commandBuffer);
+
+    m_commands.SetViewport(commandBuffer, m_sceneResources.GetExtent());
+    m_commands.SetScissor(commandBuffer, m_sceneResources.GetExtent());
+
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+    m_sceneRenderPass.End(commandBuffer);
 
     // POST PASS
     m_postRenderPass.Render(commandBuffer, m_postResources.GetFramebuffer(imageIndex), m_swapchain.GetExtent());
 
-    // END
+    // END COMMAND BUFFER
     vkEndCommandBuffer(commandBuffer);
 
 }
@@ -79,11 +90,10 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& d
 void VulkanRenderer::Render(ApplicationDesc& desc) {
 
     m_sync.Wait(m_device.Get());
-    m_sync.Reset(m_device.Get());
 
     // ACQUIRE IMAGE
     uint32_t imageIndex = 0;
-    VK_CHECK(vkAcquireNextImageKHR( m_device.Get(), m_swapchain.Get(), UINT64_MAX, m_sync.GetImageAvailableSemaphore(), m_sync.GetFence(), &imageIndex));
+    VK_CHECK(vkAcquireNextImageKHR(m_device.Get(), m_swapchain.Get(), UINT64_MAX, m_sync.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex));
 
     // RECORD COMMANDS
     RecordCommandBuffer(imageIndex, desc);
@@ -91,6 +101,8 @@ void VulkanRenderer::Render(ApplicationDesc& desc) {
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
+
+    m_sync.Reset(m_device.Get());
 
     // SUBMIT
     VkSubmitInfo submitInfo{};
@@ -106,7 +118,7 @@ void VulkanRenderer::Render(ApplicationDesc& desc) {
     VkSemaphore finishedSemaphore = m_sync.GetRenderFinishedSemaphore();
     submitInfo.pSignalSemaphores = &finishedSemaphore;
 
-    VK_CHECK(vkQueueSubmit(m_queues.GetGraphics(), 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueSubmit(m_queues.GetGraphics(), 1, &submitInfo, m_sync.GetFence()));
 
     // PRESENT
     VkPresentInfoKHR presentInfo{};
@@ -124,8 +136,7 @@ void VulkanRenderer::Render(ApplicationDesc& desc) {
 
     VK_CHECK(vkQueuePresentKHR(m_queues.GetPresent(), &presentInfo));
 
-    // WAIT
-    VK_CHECK(vkQueueWaitIdle(m_queues.GetPresent()));
+    m_sync.NextFrame(desc.MAX_FRAMES_IN_FLIGHT);
 
 }
 

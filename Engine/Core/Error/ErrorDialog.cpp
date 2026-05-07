@@ -1,5 +1,5 @@
 #include "ErrorDialog.h"
-#include "../../../Settings.h"
+#include "../../../Engine/Core/ApplicationDesc.h"
 #include <cstring>
 #include <sstream>
 

@@ -1,13 +1,16 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "../Resources/VulkanTextureDescriptor.h"
 
 class VulkanPostRenderPass {
 public:
     void Create(
         VkDevice device,
         VkExtent2D extent,
-        VkFormat swapchainFormat);
+        VkFormat swapchainFormat,
+        RenderTarget& sceneColor,
+        RenderTarget& sceneDepth);
 
     void Destroy(VkDevice device);
 
@@ -23,6 +26,7 @@ private:
     VkPipeline m_pipeline = VK_NULL_HANDLE;
     VkRenderPass m_renderPass = VK_NULL_HANDLE;
     VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VulkanTextureDescriptor m_sceneDescriptor;
 
 };
 

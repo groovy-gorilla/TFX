@@ -1,6 +1,5 @@
 #include "VulkanSceneResources.h"
 
-#include <array>
 #include <iostream>
 #include <ostream>
 
@@ -8,12 +7,13 @@
 #include "../Utils/VulkanUtils.h"
 
 
-void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice device, VkExtent2D extent, VkFormat colorFormat, VkFormat depthFormat, AntiAliasing aaMode, VkSampleCountFlagBits msaaSamples, float ssaaScale, VkRenderPass renderPass) {
+void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice device, VkExtent2D extent, VkFormat colorFormat, VkFormat depthFormat, AntiAliasing aaMode, VkSampleCountFlagBits msaaSamples, float ssaaScale, TextureFilter filterMode, VkRenderPass renderPass) {
 
     m_extent = extent;
     m_samples = msaaSamples;
     m_aaMode = aaMode;
 
+    // EXTENT SWITCH
     switch (aaMode) {
 
         case AntiAliasing::SSAA:
@@ -27,30 +27,61 @@ void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice devi
 
     }
 
+    // COLOR SWITCH
     switch (aaMode) {
 
         case AntiAliasing::None:
         case AntiAliasing::SSAA:
         case AntiAliasing::SSAA_TAA:
-             // COLOR
+
+             // Color
              CreateImage(physicalDevice, device, m_extent.width, m_extent.height, colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,VK_SAMPLE_COUNT_1_BIT,SceneColor.Image, SceneColor.Memory);
              SceneColor.View = CreateImageView(device, SceneColor.Image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+             SceneColor.CreateSampler(device, filterMode);
              break;
 
         case AntiAliasing::MSAA:
         case AntiAliasing::MSAA_TAA:
-             // MSAA color
+
+             // MSAA Color
              CreateImage(physicalDevice, device, m_extent.width, m_extent.height, colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, m_samples, MSAAColor.Image, MSAAColor.Memory);
              MSAAColor.View = CreateImageView(device, MSAAColor.Image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-             // resolve
+             // Resolve Color
              CreateImage(physicalDevice, device, m_extent.width, m_extent.height, colorFormat, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_SAMPLE_COUNT_1_BIT, ResolveColor.Image, ResolveColor.Memory);
              ResolveColor.View = CreateImageView(device, ResolveColor.Image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+             ResolveColor.CreateSampler(device, filterMode);
+            break;
     }
 
-    // DEPTH
-    CreateImage(physicalDevice, device, m_extent.width, m_extent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_samples, SceneDepth.Image, SceneDepth.Memory);
-    SceneDepth.View = CreateImageView(device, SceneDepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    // DEPTH SWITCH
+    switch (aaMode) {
+
+        case AntiAliasing::None:
+        case AntiAliasing::SSAA:
+        case AntiAliasing::SSAA_TAA:
+
+            // Scene Depth
+            CreateImage(physicalDevice, device, m_extent.width, m_extent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_SAMPLE_COUNT_1_BIT, SceneDepth.Image, SceneDepth.Memory);
+            SceneDepth.View = CreateImageView(device, SceneDepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+            SceneDepth.CreateSampler(device, filterMode);
+            break;
+
+        case AntiAliasing::MSAA:
+        case AntiAliasing::MSAA_TAA:
+
+            // MSAA Depth
+            CreateImage(physicalDevice, device, m_extent.width, m_extent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_samples, SceneDepth.Image, SceneDepth.Memory);
+            SceneDepth.View = CreateImageView(device, SceneDepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+            // Resolve Depth
+            CreateImage(physicalDevice, device, m_extent.width, m_extent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_SAMPLE_COUNT_1_BIT, ResolveDepth.Image, ResolveDepth.Memory);
+            ResolveDepth.View = CreateImageView(device, ResolveDepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+            ResolveDepth.CreateSampler(device, filterMode);
+            break;
+
+    }
+
 
     // FRAMEBUFFER
     std::vector<VkImageView> attachments;
@@ -62,7 +93,8 @@ void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice devi
              attachments = {
                 MSAAColor.View,
                 SceneDepth.View,
-                ResolveColor.View
+                ResolveColor.View,
+                ResolveDepth.View
              };
              break;
 
@@ -79,8 +111,8 @@ void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice devi
     fb.renderPass = renderPass;
     fb.attachmentCount = static_cast<uint32_t>(attachments.size());
     fb.pAttachments = attachments.data();
-    fb.width = extent.width;
-    fb.height = extent.height;
+    fb.width = m_extent.width;
+    fb.height = m_extent.height;
     fb.layers = 1;
 
     VK_CHECK(vkCreateFramebuffer(device, &fb, nullptr, &m_framebuffer));
@@ -98,40 +130,38 @@ void VulkanSceneResources::Destroy(VkDevice device, AntiAliasing aaMode) {
     SceneDepth.Destroy(device);
     MSAAColor.Destroy(device);
     ResolveColor.Destroy(device);
+    ResolveDepth.Destroy(device);
 
     std::cout << "[Vulkan] Scene-resources destroyed" << std::endl;
 
 }
 
-VkImageView VulkanSceneResources::GetOutputView() const {
+RenderTarget& VulkanSceneResources::GetOutputColor(){
 
     switch (m_aaMode) {
-
         case AntiAliasing::MSAA:
         case AntiAliasing::MSAA_TAA:
-            return ResolveColor.View;
+            return ResolveColor;
 
         default:
-            return SceneColor.View;
-
+            return SceneColor;
     }
 
 }
 
-VkImage VulkanSceneResources::GetOutputImage() const {
+RenderTarget& VulkanSceneResources::GetOutputDepth() {
 
     switch (m_aaMode) {
-
         case AntiAliasing::MSAA:
         case AntiAliasing::MSAA_TAA:
-            return ResolveColor.Image;
+            return ResolveDepth;
 
         default:
-            return SceneColor.Image;
-
+            return SceneDepth;
     }
 
 }
+
 
 
 

@@ -13,6 +13,9 @@ public:
 
     void Destroy(VkDevice device);
 
+    void SetViewport(VkCommandBuffer commandBuffer, VkExtent2D extent);
+    void SetScissor(VkCommandBuffer commandBuffer, VkExtent2D extent);
+
     VkCommandBuffer Get(uint32_t index) const { return m_commandBuffers[index]; }
 
 private:

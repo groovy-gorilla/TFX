@@ -13,9 +13,9 @@ void Window::Create(const ApplicationDesc &desc) {
     setenv("GTK_THEME", "Adwaita:dark", 1);
 
     m_window = SDL_CreateWindow(
-        desc.title,
-        desc.width / desc.scaling,
-        desc.height / desc.scaling,
+        desc.TITLE,
+        desc.WIDTH / desc.SCALING,
+        desc.HEIGHT / desc.SCALING,
         SDL_WINDOW_VULKAN
     );
 
@@ -48,12 +48,12 @@ void Window::GetFramebufferSize(int& width, int& height) const {
 
 void Window::SetWindowed(ApplicationDesc& desc) {
 
-    SDL_SetWindowSize(m_window, desc.width / desc.scaling, desc.height / desc.scaling);
+    SDL_SetWindowSize(m_window, desc.WIDTH / desc.SCALING, desc.HEIGHT / desc.SCALING);
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     SDL_SetWindowFullscreen(m_window, false);
 
-    desc.fullscreen = false;
+    desc.FULLSCREEN = false;
 
 }
 
@@ -61,18 +61,18 @@ void Window::SetFullscreen(ApplicationDesc& desc, Uint32 displayID) {
 
     SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(displayID, nullptr);
 
-    modes[0]->w = desc.width;
-    modes[0]->h = desc.height;
+    modes[0]->w = desc.WIDTH;
+    modes[0]->h = desc.HEIGHT;
 
     SDL_SetWindowFullscreenMode(m_window, modes[0]);
     SDL_SetWindowFullscreen(m_window, true);
 
-    desc.fullscreen = true;
+    desc.FULLSCREEN = true;
 
 }
 
 void Window::SetSize(ApplicationDesc& desc) {
-    SDL_SetWindowSize(m_window, desc.width / desc.scaling, desc.height / desc.scaling);
+    SDL_SetWindowSize(m_window, desc.WIDTH / desc.SCALING, desc.HEIGHT / desc.SCALING);
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 }
 

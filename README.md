@@ -1,99 +1,100 @@
-# Indigo Engine
+# TFX
 
-Custom 2D/3D game engine written in C++ and Vulkan.
+Modern remake of a 1993 flight simulator written in C++ and Vulkan.
 
 ## Overview
-This project is a custom game engine written in C++ using Vulkan.  
-The goal is to build a clean, modular architecture for rendering, input, and resource management.  
 
-The engine will be used as a foundation for future game projects.
+TFX is a custom flight simulator project built from scratch using:
+- C++20
+- Vulkan
+- SDL3
 
-## Goals
+The project focuses on modern rendering architecture, clean code structure, and low-level graphics programming.
 
-- Clean and simple architecture
-- Vulkan-based rendering
-- Separation of data and rendering logic
-- Expandable for future features
+---
 
-## Project Structure (NEW)
+## Features
 
-```
-IndigoEngine/
+- Vulkan renderer
+- SDL3 platform layer
+- Multi-pass rendering
+- Post-processing pipeline
+- Custom rendering architecture
+
+---
+
+## Project Structure
+
+```text
+TFX/
 │
 ├── Engine/
 │   │
 │   ├── Core/
-│   │   ├── Application (main loop)
-│   │   ├── ApplicationDesc
-│   │   ├── Window
-│   │   ├── Display
-│   │   └── ErrorDialog
-│   │   
+│   │   │
+│   │   ├── Application/
+│   │   ├── Window/
+│   │   └── Display/
+│   │
 │   ├── Input/
-│   │   ├── Input
-│   │   ├── KeyCodes
-│   │   └── InputMapping
-│   │ 
-│   └── Platform/
-│       │
-│       └── SDL/
-│           └── SDLInput
+│   │
+│   ├── Platform/
+│   │   └── SDL/
+│   │
+│   ├── Graphics/
+│   │   │
+│   │   ├── Renderer/
+│   │   │
+│   │   ├── Passes/
+│   │   │   ├── Scene/
+│   │   │   └── PostProcess/
+│   │   │
+│   │   ├── Resources/
+│   │   │
+│   │   └── Vulkan/
+│   │       │
+│   │       ├── Core/
+│   │       ├── Command/
+│   │       ├── Swapchain/
+│   │       ├── Sync/
+│   │       ├── Debug/
+│   │       └── Resources/
+│   │
+│   └── pch.h
 │
-└── Graphics
-        Vulkan
-            Core
-                Instance
-                Surface
-                PhysicalDevice
-                Device
-            Command
-                CommandPool
-                CommandBuffer
-            Sync
-                Fence
-                Semaphore
-            Swapchain
-                Swapchain
-                RenderFrame
-            Debug
-                ValidationLayers
-                DebugMessengers
-                Debug
-                Queues
-                Swapchain
-                Sync
-                Validation
-            
-            ScenePass
-                SceneRenderPass
-                SceneResources
-                ScenePipeline
-            PostProcessPass
-                SSAARenderPass
-                PostRenderPass
-                PostResources
-            Resources
-                RenderTarget
-                TextureDescriptor
-            Renderer
-            Utils
+├── Sandbox/
+│
+├── Assets/
+│   └── Shaders/
+│
+├── ThirdParty/
+│
+└── CMake/
 ```
 
-## Build
+---
 
-Requirements:
+## Build Requirements
+
 - CMake
 - Vulkan SDK
-- C++ compiler (GCC/Clang)
+- C++20 compatible compiler
+- SDL3
 
-Build steps:
+---
+
+## Build
 
 ```bash
 mkdir build
 cd build
+
 cmake ..
 make
 ```
 
+---
+
 ## Status
+
 Work in progress.

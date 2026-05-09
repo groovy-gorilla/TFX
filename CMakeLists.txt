@@ -8,7 +8,7 @@ set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
 cmake_minimum_required(VERSION 3.30)
 project(TFX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(EXECUTABLE_NAME TFX)
 
 find_package(Vulkan REQUIRED)

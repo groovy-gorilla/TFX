@@ -16,6 +16,10 @@
 #include "Core/VulkanSync.h"
 #include "Core/VulkanQueues.h"
 #include "PostProcessPass/VulkanSSAARenderPass.h"
+#include <filesystem>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 struct ViewportRect {
     float x;
@@ -36,6 +40,8 @@ public:
 
     void RecreateSwapchain(Display& display, Window& window, ApplicationDesc& desc);
     void RecreateRenderer(Display& display, Window& window, ApplicationDesc& desc);
+
+    void TakeScreenshot(uint32_t imageIndex);
 
     VkDevice GetDevice() { return m_device.Get(); }
     VulkanSceneResources& GetSceneResources() { return m_sceneResources; }

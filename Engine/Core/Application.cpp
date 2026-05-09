@@ -31,12 +31,11 @@ void Application::Run() {
     actions.Bind("Windowed", Key::W);
     actions.Bind("Aspect", Key::A);
     actions.Bind("Filter", Key::F);
-    actions.Bind("MSAA", Key::M);
+    actions.Bind("AA", Key::M);
     actions.Bind("VSync", Key::V);
+    actions.Bind("Screenshot", Key::S);
     actions.Bind("ResolutionUp", Key::Equals);
     actions.Bind("ResolutionDown", Key::Minus);
-    actions.Bind("Monitor1", Key::Num1);
-    actions.Bind("Monitor2", Key::Num2);
 
     // VULKAN
     m_graphics.Initialize(m_display, m_window, m_desc);
@@ -46,28 +45,6 @@ void Application::Run() {
     uint32_t frames = 0;
 
     while (!m_window.ShouldClose()) {
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
-        lastTime = currentTime;
-        timer += deltaTime;
-        frames++;
-        if (timer >= 1.0f) {
-            std::cout << "FPS: " << frames << std::endl;
-            frames = 0;
-            timer = 0.0f;
-        }
-
-
-
-
-
-
-
-
-
-
-        m_graphics.Render(m_desc);
 
         if (m_pendingFullscreen) {
             SDL_SetWindowFullscreenMode(m_window.GetHandle(), m_display.GetDisplayNativeMode());
@@ -96,23 +73,19 @@ void Application::Run() {
                     // ...
                     break;
                 case SDL_EVENT_WINDOW_MINIMIZED:                                        // minimalizacja okna (utrata fokusa i okno ma wtedy zwykle rozmiar 0x0
-                    // minimized = true;                                                // if (paused) SDL_Delay(10); continue; --> nie renderuję do GPU
+                    // Na Wayland nie działa (póki co)
                     break;
                 case SDL_EVENT_WINDOW_RESTORED:                                         // przywrócenie okna z mimimalizacji
-                    // minimized = false;
-                    // recreate swapchain
+                    // Na Wayland nie działa (póki co)
                     break;
                 case SDL_EVENT_WINDOW_MAXIMIZED:                                        // maksymalizacja okna
                     // ...
                     break;
                 case SDL_EVENT_WINDOW_FOCUS_LOST:                                       // utrata fokusa --> robimy pauzę
-                    // focused = false;                                                 // if (paused) SDL_Delay(10); continue;
-                    // SDL_SetRelativeMouseMode(SDL_FALSE);                             // oddanie kursora myszy --> przywrócnie np. po kliknięciu w okno
-                    // bool paused = minimized || !focused;
+                    m_paused = false;
                     break;
                 case SDL_EVENT_WINDOW_FOCUS_GAINED:                                     // przywrócenie fokusa
-                    // focused = true;                                                  // ale co jeśli podczas utraty fokusa doszło np. do zmiany skali?
-                    // SDL_SetRelativeMouseMode(SDL_TRUE);
+                    m_paused = true;                                                    // ale co jeśli podczas utraty fokusa doszło np. do zmiany skali?
                     break;
                 case SDL_EVENT_MOUSE_BUTTON_DOWN:                                       // uchwycenie myszy po kliknięciu nią w okno
                     // SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -130,6 +103,27 @@ void Application::Run() {
 
             m_sdlInput.ProcessEvent(event);
 
+        }
+
+        // PAUSED
+        if (!m_paused) {
+            SDL_Delay(100);
+            continue;
+        }
+
+        // RENDER
+        m_graphics.Render(m_desc);
+
+        // PSEUDO - FPS
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
+        timer += deltaTime;
+        frames++;
+        if (timer >= 0.5f) {
+            std::cout << "FPS: " << frames * 2 << std::endl;
+            frames = 0;
+            timer = 0.0f;
         }
 
         // ASPECT RATIO
@@ -176,55 +170,79 @@ void Application::Run() {
             m_graphics.GetRenderer().RecreateSwapchain(m_display, m_window, m_desc);
         }
 
+        // WINDOWED
+        if (actions.IsActionPressed(m_input, "Windowed")) {
+            if (m_desc.FULLSCREEN) {
+                m_desc.FULLSCREEN = false;
+                m_window.SetWindowed(m_desc, m_display);
+            } else {
+                m_desc.FULLSCREEN = true;
+                m_window.SetFullscreen(m_desc, m_display);
+            }
+
+            m_graphics.GetRenderer().RecreateRenderer(m_display, m_window, m_desc);
+        }
+
+        // SCREEN RESOLUTION
+        int size = m_display.GetDisplayModes().size();
+        std::vector<Mode> m = m_display.GetDisplayModes();
+        auto it = std::find_if(m.begin(), m.end(),
+            [&](const Mode& r) {
+                return r.width == m_desc.WIDTH && r.height == m_desc.HEIGHT;
+            });
+
+        static int i = -1;
+        if (it != m_display.GetDisplayModes().end()) {
+            i = std::distance(m.begin(), it);
+        }
+
+        if (actions.IsActionPressed(m_input, "ResolutionDown")) {
+            i++;
+            if (i > (size-1)) i = (size-1);
+            SetResolution(m[i]);
+            std::cout << "Resolution set to: " << m[i].width << "x" << m[i].height << std::endl;
+        }
+
+        if (actions.IsActionPressed(m_input, "ResolutionUp")) {
+            i--;
+            if (i < 0) i = 0;
+            SetResolution(m[i]);
+            std::cout << "Resolution set to: " << m[i].width << "x" << m[i].height << std::endl;
+        }
+
+        // ANTIALIASING
+        if (actions.IsActionPressed(m_input, "AA")) {
+            switch (m_desc.AA_MODE) {
+                case AntiAliasing::None:
+                    m_desc.AA_MODE = AntiAliasing::MSAA;
+                    m_desc.MSAA_SAMPLES = VK_SAMPLE_COUNT_16_BIT;
+                    m_desc.SSAA_SCALE = 1.0f;
+                    break;
+                case AntiAliasing::MSAA:
+                case AntiAliasing::MSAA_TAA:
+                    m_desc.AA_MODE = AntiAliasing::SSAA;
+                    m_desc.MSAA_SAMPLES = VK_SAMPLE_COUNT_1_BIT;
+                    m_desc.SSAA_SCALE = 2.0f;
+                    break;
+                case AntiAliasing::SSAA:
+                case AntiAliasing::SSAA_TAA:
+                    m_desc.AA_MODE = AntiAliasing::None;
+                    m_desc.MSAA_SAMPLES = VK_SAMPLE_COUNT_1_BIT;
+                    m_desc.SSAA_SCALE = 1.0f;
+                    break;
+            }
+            m_graphics.GetRenderer().RecreateRenderer(m_display, m_window, m_desc);
+        }
+
+        // TAKE SCREENSHOT
+        if (actions.IsActionPressed(m_input, "Screenshot")) {
+            m_desc.TAKE_SCREENSHOT = true;
+        }
+
         // QUIT
         if (actions.IsActionPressed(m_input, "Quit")) break;
 
-        // WINDOWED
-        //if (actions.IsActionPressed(m_input, "Windowed")) {
-        //    if (m_desc.fullscreen) {
-        //        m_window.SetWindowed(m_desc);
-        //        m_window.SetSize(m_desc);
-        //    } else {
-        //        m_window.SetFullscreen(m_desc, m_display.GetPrimaryDisplay().id);
-        //    }
-        //}
-
-        // SCREEN RESOLUTION
-        //int size = m_display.GetDisplayModes().size();
-        //std::vector<Mode> m = m_display.GetDisplayModes();
-        //auto it = std::find_if(m.begin(), m.end(),
-        //    [&](const Mode& r) {
-        //        return r.width == m_desc.width && r.height == m_desc.height;
-        //    });
-
-        //static int i = -1;
-        //if (it != m_display.GetDisplayModes().end()) {
-        //    i = std::distance(m.begin(), it);
-        //}
-
-        //if (actions.IsActionPressed(m_input, "ResolutionDown")) {
-        //    i++;
-        //    if (i > (size-1)) i = (size-1);
-        //    SetResolution(m[i]);
-        //    std::cout << "Resolution set to: " << m[i].width << "x" << m[i].height << std::endl;
-        //}
-
-        //if (actions.IsActionPressed(m_input, "ResolutionUp")) {
-        //    i--;
-        //    if (i < 0) i = 0;
-        //    SetResolution(m[i]);
-        //    std::cout << "Resolution set to: " << m[i].width << "x" << m[i].height << std::endl;
-        //}
-
-
-
-
-
-
-
-
     }
-
 
     m_graphics.Shutdown(m_desc);
     m_window.Destroy();
@@ -235,13 +253,18 @@ void Application::Run() {
 void Application::SetResolution(const Mode& res) {
 
     // 1. Window desc
-    //m_desc.width = res.width;
-    //m_desc.height = res.height;
+    m_desc.WIDTH = res.width;
+    m_desc.HEIGHT = res.height;
 
     // 2. Zmienia rozmiar okna
-    //m_window.SetSize(m_desc);
+    if (m_desc.FULLSCREEN) {
+        // ...
+    } else {
+        m_window.SetWindowSize(m_desc, m_display);
+    }
 
     // 3. Renderer ogarnia swapchain
-    //m_graphics.GetRenderer().RecreateSwapchain(m_window);
+    m_graphics.GetRenderer().RecreateRenderer(m_display, m_window, m_desc);
 
 }
+

@@ -53,18 +53,15 @@ void Window::SetShouldClose(bool value) {
 
 void Window::SetWindowed(ApplicationDesc& desc, Display& display) {
 
+    SDL_SetWindowFullscreen(m_window, false);
     SDL_SetWindowSize(m_window, desc.WIDTH / display.GetScaling(), desc.HEIGHT / display.GetScaling());
     SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
-    SDL_SetWindowFullscreen(m_window, false);
-
-    desc.FULLSCREEN = false;
-
 }
 
-void Window::SetFullscreen(ApplicationDesc& desc, Uint32 displayID) {
+void Window::SetFullscreen(ApplicationDesc& desc, Display& display) {
 
-    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(displayID, nullptr);
+    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display.GetPrimaryDisplay().id, nullptr);
 
     modes[0]->w = desc.WIDTH;
     modes[0]->h = desc.HEIGHT;
@@ -72,7 +69,11 @@ void Window::SetFullscreen(ApplicationDesc& desc, Uint32 displayID) {
     SDL_SetWindowFullscreenMode(m_window, modes[0]);
     SDL_SetWindowFullscreen(m_window, true);
 
-    desc.FULLSCREEN = true;
+}
+
+void Window::SetWindowSize(ApplicationDesc& desc, Display& display) {
+
+    SDL_SetWindowSize(m_window, desc.WIDTH / display.GetScaling(), desc.HEIGHT / display.GetScaling());
 
 }
 

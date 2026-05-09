@@ -17,6 +17,7 @@ public:
     void SetScissor(VkCommandBuffer commandBuffer, VkExtent2D extent);
 
     VkCommandBuffer Get(uint32_t index) const { return m_commandBuffers[index]; }
+    VkCommandPool GetPool() const { return m_commandPool; }
 
 private:
 

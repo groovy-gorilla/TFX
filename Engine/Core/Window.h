@@ -16,7 +16,9 @@ public:
     void SetShouldClose(bool value);
 
     void SetWindowed(ApplicationDesc& desc, Display& display);
-    void SetFullscreen(ApplicationDesc& desc, Uint32 displayID);
+    void SetFullscreen(ApplicationDesc& desc, Display& display);
+
+    void SetWindowSize(ApplicationDesc& desc, Display& display);
 
     // Vulkan
     SDL_Window* GetHandle() const;

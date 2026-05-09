@@ -1,3 +1,6 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "../../Engine/ThirdParty/stb/stb_image_write.h"
+
 #include "VulkanRenderer.h"
 
 #include <iostream>
@@ -126,6 +129,12 @@ void VulkanRenderer::Render(ApplicationDesc& desc) {
     // RECORD COMMANDS
     RecordCommandBuffer(imageIndex, desc);
 
+    // TAKE SCREENSHOT
+    if (desc.TAKE_SCREENSHOT) {
+        TakeScreenshot(imageIndex);
+        desc.TAKE_SCREENSHOT = false;
+    }
+
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
@@ -237,4 +246,104 @@ void VulkanRenderer::RecreateRenderer(Display& display, Window& window, Applicat
 
 }
 
+void VulkanRenderer::TakeScreenshot(uint32_t imageIndex) {
 
+    VkImage srcImage = m_swapchain.GetImages()[imageIndex];
+
+    VkDeviceSize imageSize = static_cast<VkDeviceSize>(m_windowExtent.width) * static_cast<VkDeviceSize>(m_windowExtent.height) * 4;
+
+    // STAGING BUFFER
+    VkBuffer stagingBuffer{};
+    VkDeviceMemory stagingMemory{};
+
+    CreateBuffer(m_physicalDevice.Get(), m_device.Get(), imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingMemory);
+
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommands(m_device.Get(), m_commands.GetPool());
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = srcImage;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = { m_windowExtent.width, m_windowExtent.height, 1 };
+
+    vkCmdCopyImageToBuffer(commandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
+
+    VkImageMemoryBarrier barrierBack{};
+    barrierBack.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrierBack.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrierBack.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrierBack.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierBack.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierBack.image = srcImage;
+    barrierBack.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrierBack.subresourceRange.baseMipLevel = 0;
+    barrierBack.subresourceRange.levelCount = 1;
+    barrierBack.subresourceRange.baseArrayLayer = 0;
+    barrierBack.subresourceRange.layerCount = 1;
+    barrierBack.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrierBack.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrierBack);
+
+    EndSingleTimeCommands(m_device.Get(), m_queues.GetGraphics(), m_commands.GetPool(), commandBuffer);
+
+    void* data = nullptr;
+
+    vkMapMemory(m_device.Get(), stagingMemory, 0, imageSize, 0, &data);
+
+    std::vector<uint8_t> pixels(imageSize);
+
+    // KONWERSJA Z BGRA NA RGBA
+    uint8_t* mapped = static_cast<uint8_t*>(data);
+
+    for (size_t i = 0; i < imageSize; i += 4) {
+        pixels[i + 0] = mapped[i + 2];
+        pixels[i + 1] = mapped[i + 1];
+        pixels[i + 2] = mapped[i + 0];
+        pixels[i + 3] = mapped[i + 3];
+    }
+
+    // CREATE DIRECTORY
+    std::filesystem::create_directory("Screenshots");
+
+    // TIMESTAMP FILENAME
+    auto now = std::chrono::system_clock::now();
+    auto time = std::chrono::system_clock::to_time_t(now);
+    std::tm localtime = *std::localtime(&time);
+    std::stringstream ss;
+    ss << "Screenshots/screenshot_" << std::put_time(&localtime, "%Y-%m-%d_%H-%M-%S") << ".png";
+    std::string filename = ss.str();
+
+    // WRITE IMAGE TO PNG FILE
+    stbi_write_png(filename.c_str(), m_windowExtent.width, m_windowExtent.height, 4, pixels.data(), m_windowExtent.width * 4);
+
+    // DESTROY
+    vkUnmapMemory(m_device.Get(), stagingMemory);
+    vkDestroyBuffer(m_device.Get(), stagingBuffer, nullptr);
+    vkFreeMemory(m_device.Get(), stagingMemory, nullptr);
+
+    std::cout << "Saving screenshot: " << filename << std::endl;
+
+}

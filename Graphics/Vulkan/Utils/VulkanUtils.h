@@ -38,3 +38,23 @@ VkSampler CreateSampler(
 VkShaderModule CreateShaderModule(
     VkDevice device,
     const std::vector<char>& code);
+
+void CreateBuffer(
+    VkPhysicalDevice physicalDevice,
+    VkDevice device,
+    VkDeviceSize size,
+    VkBufferUsageFlags usage,
+    VkMemoryPropertyFlags properties,
+    VkBuffer& buffer,
+    VkDeviceMemory& memory);
+
+VkCommandBuffer BeginSingleTimeCommands(
+    VkDevice device,
+    VkCommandPool commandPool);
+
+void EndSingleTimeCommands(
+    VkDevice device,
+    VkQueue queue,
+    VkCommandPool commandPool,
+    VkCommandBuffer commandBuffer);
+

@@ -23,7 +23,6 @@ void VulkanRenderer::Initialize(Display& display, Window& window, ApplicationDes
     m_physicalDevice.Pick(m_instance.Get(), m_surface.Get());
     m_physicalDevice.CreateSupportedSampleCounts();
     m_device.Create(m_physicalDevice.Get(), m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily());
-
     m_queues.Create(m_device.Get(), m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily());
     m_swapchain.Create(m_physicalDevice.Get(), m_device.Get(), m_surface.Get(), m_windowExtent, m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily(), desc.VSYNC);
     m_commands.Create(m_device.Get(), m_physicalDevice.GetGraphicsQueueFamily(), static_cast<uint32_t>(m_swapchain.GetImages().size()));
@@ -34,22 +33,11 @@ void VulkanRenderer::Initialize(Display& display, Window& window, ApplicationDes
     m_sceneResources.Create(m_physicalDevice.Get(), m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc, m_sceneRenderPass.Get());
     m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.AA_MODE, desc.MSAA_SAMPLES);
 
+    // SSAA
+    m_ssaaRenderPass.Create(m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), /*IN*/m_sceneResources.SceneColor, /*IN*/m_sceneResources.SceneDepth, /*OUT*/m_sceneResources.FinalColor, desc);
+
     // POST
-    RenderTarget* postColor = &m_sceneResources.SceneColor;
-    switch (desc.AA_MODE) {
-        case AntiAliasing::MSAA:
-        case AntiAliasing::MSAA_SMAA:
-            postColor = &m_sceneResources.ResolveColor;
-            break;
-        case AntiAliasing::SSAA:
-        case AntiAliasing::SSAA_SMAA:
-            postColor = &m_sceneResources.FinalColor;
-            break;
-        default:
-            break;
-    }
-    m_ssaaRenderPass.Create(m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), m_sceneResources.SceneColor, m_sceneResources.SceneDepth, m_sceneResources.FinalColor, desc);
-    m_postRenderPass.Create(m_device.Get(), m_windowExtent, m_swapchain.GetImageFormat(), *postColor, m_sceneResources.ResolveDepth, desc);
+    m_postRenderPass.Create(m_device.Get(), m_windowExtent, m_swapchain.GetImageFormat(), desc);
     m_postResources.Create(m_device.Get(), m_postRenderPass.Get(), m_windowExtent, m_swapchain.GetImageViews());
 
 }
@@ -75,7 +63,7 @@ void VulkanRenderer::Shutdown(ApplicationDesc& desc) {
 }
 
 
-void VulkanRenderer::RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& desc) {
+void VulkanRenderer::RecordCommandBuffer(VkDevice device, uint32_t imageIndex, ApplicationDesc& desc) {
 
     VkCommandBuffer commandBuffer = m_commands.Get(imageIndex);
 
@@ -88,6 +76,9 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& d
 
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
+    // CURRENT PIPELINE OUTPUT
+    RenderTarget* currentColor = &m_sceneResources.SceneColor;
+
     // SCENE PASS
     m_sceneRenderPass.Begin(commandBuffer, m_sceneResources.GetFramebuffer(), m_sceneResources.GetExtent());
     m_scenePipeline.Bind(commandBuffer);
@@ -99,20 +90,26 @@ void VulkanRenderer::RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& d
 
     m_sceneRenderPass.End(commandBuffer);
 
-    // SSAA PASS
+    // MSAA
+    if (desc.AA_MODE == AntiAliasing::MSAA || desc.AA_MODE == AntiAliasing::MSAA_SMAA) {
+        currentColor = &m_sceneResources.ResolveColor;
+    }
+
+    // SSAA
     if (desc.AA_MODE == AntiAliasing::SSAA || desc.AA_MODE == AntiAliasing::SSAA_SMAA) {
-        m_ssaaRenderPass.Render(commandBuffer, m_renderExtent);
+        m_ssaaRenderPass.Render(commandBuffer, m_renderExtent, m_sync.GetCurrentFrame());
+        currentColor = &m_sceneResources.FinalColor;
     }
 
     // POST PASS
-    m_postRenderPass.Render(commandBuffer, m_postResources.GetFramebuffer(imageIndex), m_swapchain.GetExtent(), desc);
+    m_postRenderPass.Render(device, m_sync.GetCurrentFrame(), commandBuffer, *currentColor, m_postResources.GetFramebuffer(imageIndex), m_swapchain.GetExtent(), desc);
 
     // END COMMAND BUFFER
     vkEndCommandBuffer(commandBuffer);
 
 }
 
-void VulkanRenderer::Render(ApplicationDesc& desc) {
+void VulkanRenderer::Render(VkDevice device, ApplicationDesc& desc) {
 
     m_sync.Wait(m_device.Get());
 
@@ -121,7 +118,7 @@ void VulkanRenderer::Render(ApplicationDesc& desc) {
     VK_CHECK(vkAcquireNextImageKHR(m_device.Get(), m_swapchain.Get(), UINT64_MAX, m_sync.GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex));
 
     // RECORD COMMANDS
-    RecordCommandBuffer(imageIndex, desc);
+    RecordCommandBuffer(device, imageIndex, desc);
 
     // TAKE SCREENSHOT
     if (desc.TAKE_SCREENSHOT) {
@@ -215,27 +212,10 @@ void VulkanRenderer::RecreateRenderer(Display& display, Window& window, Applicat
     m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.AA_MODE, desc.MSAA_SAMPLES);
 
     // SSAA
-    m_ssaaRenderPass.Create(m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), m_sceneResources.SceneColor, m_sceneResources.SceneDepth, m_sceneResources.FinalColor, desc);
-
-    // POST TARGET
-    RenderTarget* postTarget = nullptr;
-
-    switch (desc.AA_MODE) {
-        case AntiAliasing::SSAA:
-        case AntiAliasing::SSAA_SMAA:
-            postTarget = &m_sceneResources.FinalColor;
-            break;
-        case AntiAliasing::MSAA:
-        case AntiAliasing::MSAA_SMAA:
-            postTarget = &m_sceneResources.ResolveColor;
-            break;
-        default:
-            postTarget = &m_sceneResources.SceneColor;
-            break;
-    }
+    m_ssaaRenderPass.Create(m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), /*IN*/m_sceneResources.SceneColor, /*IN*/m_sceneResources.SceneDepth, /*OUT*/m_sceneResources.FinalColor, desc);
 
     // POST
-    m_postRenderPass.Create(m_device.Get(), m_windowExtent, m_swapchain.GetImageFormat(), *postTarget, m_sceneResources.ResolveDepth, desc);
+    m_postRenderPass.Create(m_device.Get(), m_windowExtent, m_swapchain.GetImageFormat(), desc);
     m_postResources.Create(m_device.Get(), m_postRenderPass.Get(), m_windowExtent, m_swapchain.GetImageViews());
 
 }

@@ -52,15 +52,15 @@ void VulkanSMAARenderPass::Create(VkPhysicalDevice physicalDevice, VkDevice devi
 void VulkanSMAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D extent, uint32_t currentFrame, RenderTarget& inputColor) {
 
     // EDGE
-    //m_edgeDescriptor.UpdateColor(m_device, currentFrame, inputColor, TextureFilter::Linear);
+    m_edgeDescriptor.UpdateColor(m_device, currentFrame, inputColor, TextureFilter::Linear);
     RenderEdgePass(commandBuffer, extent, currentFrame);
 
     // BLEND
-    //m_blendDescriptor.UpdateColor(m_device, currentFrame, m_edgeTarget, TextureFilter::Linear);
+    m_blendDescriptor.UpdateColor(m_device, currentFrame, m_edgeTarget, TextureFilter::Linear);
     RenderBlendPass(commandBuffer, extent, currentFrame);
 
     // NEIGHBORHOOD
-    //m_neighborhoodDescriptor.UpdateColor(m_device, currentFrame, m_blendTarget, TextureFilter::Linear);
+    m_neighborhoodDescriptor.UpdateColor(m_device, currentFrame, m_blendTarget, TextureFilter::Linear);
     RenderNeighborhoodPass(commandBuffer, extent, currentFrame);
 
 }
@@ -169,8 +169,8 @@ void VulkanSMAARenderPass::RenderEdgePass(VkCommandBuffer commandBuffer, VkExten
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_edgePipeline);
 
     // DESCRIPTORS
-    //VkDescriptorSet descriptorSet = m_edgeDescriptor.GetSet(currentFrame);
-    //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_edgePipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+    VkDescriptorSet descriptorSet = m_edgeDescriptor.GetSet(currentFrame);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_edgePipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
     // DRAW FULLSCREEN TRIANGLE
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -202,8 +202,8 @@ void VulkanSMAARenderPass::RenderBlendPass(VkCommandBuffer commandBuffer, VkExte
     vkCmdBindPipeline(commandBuffer,VK_PIPELINE_BIND_POINT_GRAPHICS, m_blendPipeline);
 
     // DESCRIPTORS
-    //VkDescriptorSet descriptorSet = m_blendDescriptor.GetSet(currentFrame);
-    //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blendPipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+    VkDescriptorSet descriptorSet = m_blendDescriptor.GetSet(currentFrame);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blendPipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
     // DRAW FULLSCREEN TRIANGLE
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -235,8 +235,8 @@ void VulkanSMAARenderPass::RenderNeighborhoodPass(VkCommandBuffer commandBuffer,
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_neighborhoodPipeline);
 
     // DESCRIPTORS
-    //VkDescriptorSet descriptorSet = m_neighborhoodDescriptor.GetSet(currentFrame);
-    //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_neighborhoodPipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+    VkDescriptorSet descriptorSet = m_neighborhoodDescriptor.GetSet(currentFrame);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_neighborhoodPipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 
     // DRAW FULLSCREEN TRIANGLE
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
@@ -317,7 +317,7 @@ void VulkanSMAARenderPass::CreateEdgeFramebuffer(VkDevice device, VkExtent2D ext
 void VulkanSMAARenderPass::CreateEdgeDescriptors(VkDevice device, ApplicationDesc& desc) {
 
     // INPUT COLOR
-    //m_edgeDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
+    m_edgeDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
 
     // LAYOUT
     m_edgeDescriptorLayout = m_edgeDescriptor.GetLayout();
@@ -522,7 +522,7 @@ void VulkanSMAARenderPass::CreateBlendFramebuffer(VkDevice device, VkExtent2D ex
 void VulkanSMAARenderPass::CreateBlendDescriptors(VkDevice device, ApplicationDesc& desc) {
 
     // EDGE TEXTURE
-    //m_blendDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
+    m_blendDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
 
     // LAYOUT
     m_blendDescriptorLayout = m_blendDescriptor.GetLayout();
@@ -727,7 +727,7 @@ void VulkanSMAARenderPass::CreateNeighborhoodFramebuffer(VkDevice device, VkExte
 void VulkanSMAARenderPass::CreateNeighborhoodDescriptors(VkDevice device, ApplicationDesc& desc) {
 
     // BLEND TEXTURE
-    //m_neighborhoodDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
+    m_neighborhoodDescriptor.CreateColor(device, desc.MAX_FRAMES_IN_FLIGHT);
 
     // LAYOUT
     m_neighborhoodDescriptorLayout = m_neighborhoodDescriptor.GetLayout();

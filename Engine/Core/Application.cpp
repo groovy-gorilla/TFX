@@ -37,12 +37,6 @@ void Application::Run() {
 
     while (!m_window.ShouldClose()) {
 
-        if (m_pendingFullscreen) {
-            SDL_SetWindowFullscreenMode(m_window.GetHandle(), m_display.GetCurrentDisplayMode());
-            SDL_SetWindowFullscreen(m_window.GetHandle(), m_desc.FULLSCREEN);
-            m_pendingFullscreen = false;
-        }
-
         m_input.BeginFrame();
 
         SDL_Event event;
@@ -103,7 +97,7 @@ void Application::Run() {
         }
 
         // RENDER
-        m_graphics.Render(m_desc);
+        m_graphics.Render(m_graphics.GetRenderer().GetDevice(), m_desc);
 
         // PSEUDO - FPS
         auto currentTime = std::chrono::high_resolution_clock::now();

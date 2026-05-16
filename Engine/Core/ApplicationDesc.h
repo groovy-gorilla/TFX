@@ -23,7 +23,7 @@ struct ApplicationDesc {
     uint32_t WIDTH                      = 320;
     uint32_t HEIGHT                     = 200;
 
-    bool FULLSCREEN                     = true;
+    bool FULLSCREEN                     = false;
     bool ASPECT_RATIO                   = true;
     bool VSYNC                          = true;
     TextureFilter FILTER                = TextureFilter::Nearest;

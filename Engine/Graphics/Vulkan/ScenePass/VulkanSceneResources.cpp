@@ -42,11 +42,6 @@ void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice devi
     CreateImage(physicalDevice, device, internalExtent.width, internalExtent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, m_samples, MSAADepth.Image, MSAADepth.Memory);
     MSAADepth.View = CreateImageView(device, MSAADepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    // Resolve Depth
-    CreateImage(physicalDevice, device, internalExtent.width, internalExtent.height, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_SAMPLE_COUNT_1_BIT, ResolveDepth.Image, ResolveDepth.Memory);
-    ResolveDepth.View = CreateImageView(device, ResolveDepth.Image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-    ResolveDepth.CreateSamplers(device);
-
 
 
     // FRAMEBUFFER
@@ -60,7 +55,6 @@ void VulkanSceneResources::Create(VkPhysicalDevice physicalDevice, VkDevice devi
                 MSAAColor.View,
                 MSAADepth.View,
                 ResolveColor.View,
-                ResolveDepth.View
              };
              break;
 
@@ -107,7 +101,6 @@ void VulkanSceneResources::Destroy(VkDevice device) {
     MSAAColor.Destroy(device);
     MSAADepth.Destroy(device);
     ResolveColor.Destroy(device);
-    ResolveDepth.Destroy(device);
     FinalColor.Destroy(device);
 
     std::cout << "[Vulkan] Scene-resources destroyed" << std::endl;

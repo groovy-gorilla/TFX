@@ -4,7 +4,7 @@
 #include "Debug/ErrorDialog.h"
 #include "Core/ApplicationDesc.h"
 
-void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat, RenderTarget& sceneColor, RenderTarget& sceneDepth, ApplicationDesc& desc) {
+void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat, ApplicationDesc desc) {
 
     // RENDER PASS
     VkAttachmentDescription colorAttachment{};
@@ -24,7 +24,7 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
     // SUBPASS
     VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint =VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorRef;
 
@@ -39,7 +39,7 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
     VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass));
 
     // DESCRIPTOR
-    m_sceneDescriptor.Create(device, sceneColor, sceneDepth, desc.FILTER);
+    m_sceneDescriptor.Create(device, desc.MAX_FRAMES_IN_FLIGHT, desc.FILTER);
     m_descriptorSetLayout = m_sceneDescriptor.GetLayout();
 
     // PIPELINE LAYOUT
@@ -176,7 +176,9 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
 }
 
-void VulkanPostRenderPass::Render(VkCommandBuffer commandBuffer, VkFramebuffer framebuffer, VkExtent2D extent, ApplicationDesc& desc) {
+void VulkanPostRenderPass::Render(VkDevice device, uint32_t frameIndex, VkCommandBuffer commandBuffer, RenderTarget& inputColor, VkFramebuffer framebuffer, VkExtent2D extent, ApplicationDesc& desc) {
+
+    m_sceneDescriptor.UpdateColor(device, frameIndex, inputColor, desc.FILTER);
 
     VkClearValue clear{};
     clear.color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -243,7 +245,7 @@ void VulkanPostRenderPass::Render(VkCommandBuffer commandBuffer, VkFramebuffer f
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkDescriptorSet descriptorSet = m_sceneDescriptor.GetSet();
+    VkDescriptorSet descriptorSet = m_sceneDescriptor.GetSet(frameIndex);
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 

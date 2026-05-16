@@ -13,18 +13,18 @@ void Display::Initialize() {
     }
 
     // Tworzy listę informacji o monitorze
-    m_currentDisplay = displays[0];                                                 // Wybiera główny monitor (SDL_GetPrimaryDisplay często nie działa prawidłowo)
-    m_currentDisplayName = SDL_GetDisplayName(displays[0]);                         // Pobiera nazwę monitora
+    m_currentDisplay = SDL_GetPrimaryDisplay(); //displays[0];                           // Wybiera główny monitor (SDL_GetPrimaryDisplay często nie działa prawidłowo)
+    m_currentDisplayName = SDL_GetDisplayName(m_currentDisplay);                         // Pobiera nazwę monitora
 
     int count = 0;
-    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(displays[0], &count);         // Pobiera tryby monitora i ich ilość
+    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(m_currentDisplay , &count);  // Pobiera tryby monitora i ich ilość
     m_videoModes.resize(count);
     for (int i = 0; i < m_videoModes.size(); i++) {
         m_videoModes[i].width = modes[i]->w;
         m_videoModes[i].height = modes[i]->h;
     }
 
-    m_currentMode = modes[0];                                                               // Ustawia tryb aktualny
+    m_currentMode = modes[0];                                                            // Ustawia tryb aktualny
 
     // ******************************************************************************************************************************
 

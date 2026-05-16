@@ -10,14 +10,15 @@ public:
         VkDevice device,
         VkExtent2D extent,
         VkFormat swapchainFormat,
-        RenderTarget& sceneColor,
-        RenderTarget& sceneDepth,
-        ApplicationDesc& desc);
+        ApplicationDesc desc);
 
     void Destroy(VkDevice device);
 
     void Render(
+        VkDevice device,
+        uint32_t frameIndex,
         VkCommandBuffer commandBuffer,
+        RenderTarget& inputColor,
         VkFramebuffer framebuffer,
         VkExtent2D extent,
         ApplicationDesc& desc);

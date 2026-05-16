@@ -8,6 +8,7 @@ set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=address")
 cmake_minimum_required(VERSION 3.30)
 project(TFX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(EXECUTABLE_NAME TFX)
 
@@ -76,8 +77,6 @@ add_executable(TFX main.cpp
         ThirdParty/stb/stb_image_write.h
         Engine/pch.h
         Engine/pch.cpp
-        Engine/Graphics/Vulkan/PostProcessPass/VulkanSMAARenderPass.h
-        Engine/Graphics/Vulkan/PostProcessPass/VulkanSMAARenderPass.cpp
 )
 
 

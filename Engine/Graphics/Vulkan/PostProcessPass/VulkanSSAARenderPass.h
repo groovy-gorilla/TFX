@@ -6,6 +6,7 @@ struct ApplicationDesc;
 
 class VulkanSSAARenderPass {
 public:
+
     void Create(
         VkDevice device,
         VkExtent2D extent,
@@ -19,7 +20,8 @@ public:
 
     void Render(
         VkCommandBuffer commandBuffer,
-        VkExtent2D extent);
+        VkExtent2D extent,
+        uint32_t currentFrame);
 
     [[nodiscard]] VkRenderPass Get() const { return m_renderPass; }
     [[nodiscard]] VulkanTextureDescriptor GetDescriptor() const { return m_sceneDescriptor; }

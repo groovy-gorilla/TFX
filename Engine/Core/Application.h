@@ -18,8 +18,6 @@ public:
 
 private:
     bool m_running = true;
-    bool m_pendingFullscreen = true;
-    bool m_framebufferResized = false;
     bool m_paused = true;
 
     ApplicationDesc m_desc;

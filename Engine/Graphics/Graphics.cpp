@@ -9,8 +9,8 @@ void Graphics::Shutdown(ApplicationDesc& desc) {
     m_renderer.Shutdown(desc);
 }
 
-void Graphics::Render(ApplicationDesc& desc) {
-    m_renderer.Render(desc);
+void Graphics::Render(VkDevice device, ApplicationDesc& desc) {
+    m_renderer.Render(device, desc);
 }
 
 VulkanRenderer& Graphics::GetRenderer() {

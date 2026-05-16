@@ -5,7 +5,7 @@
 #include "Core/ApplicationDesc.h"
 
 
-void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat, RenderTarget& sceneColor, RenderTarget& sceneDepth, RenderTarget& finalColor, ApplicationDesc& desc) {
+void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat swapchainFormat, /*IN*/RenderTarget& sceneColor, RenderTarget& sceneDepth, RenderTarget& finalColor, ApplicationDesc& desc) {
 
     // RENDER PASS
     VkAttachmentDescription colorAttachment{};
@@ -40,7 +40,7 @@ void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
     VK_CHECK(vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_renderPass));
 
     // DESCRIPTOR
-    m_sceneDescriptor.Create(device, sceneColor, sceneDepth, TextureFilter::Linear);
+    m_sceneDescriptor.Create(device, desc.MAX_FRAMES_IN_FLIGHT, sceneColor, sceneDepth, TextureFilter::Linear);
     m_descriptorSetLayout = m_sceneDescriptor.GetLayout();
 
     // PIPELINE LAYOUT
@@ -168,7 +168,7 @@ void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
 }
 
-void VulkanSSAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D extent) {
+void VulkanSSAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D extent, uint32_t currentFrame) {
 
     VkClearValue clear{};
     clear.color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -185,7 +185,7 @@ void VulkanSSAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D exte
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
-    VkDescriptorSet descriptorSet = m_sceneDescriptor.GetSet();
+    VkDescriptorSet descriptorSet = m_sceneDescriptor.GetSet(currentFrame);
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
 

@@ -5,13 +5,11 @@ void Window::Create(ApplicationDesc &desc, Display& display) {
 
     setenv("GTK_THEME", "Adwaita:dark", 1);
 
-    GetWindowExtent(display, desc);
-
     m_window = SDL_CreateWindow(
         desc.TITLE,
         desc.WIDTH / display.GetScaling() * desc.WINDOWED_SCALE,
         desc.HEIGHT / display.GetScaling() * desc.WINDOWED_SCALE,
-        SDL_WINDOW_VULKAN
+        SDL_WINDOW_VULKAN | SDL_WINDOW_HIDDEN
     );
 
     if (!m_window) {
@@ -19,6 +17,18 @@ void Window::Create(ApplicationDesc &desc, Display& display) {
     }
 
     SDL_ShowWindow(m_window);
+    SDL_SyncWindow(m_window);
+    SDL_PumpEvents();
+
+    if (SDL_GetDisplayForWindow(m_window) != SDL_GetPrimaryDisplay()) {
+        // tu zmienić położenie na drugi monitor
+    }
+
+    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SyncWindow(m_window);
+    SDL_SetWindowFullscreenMode(m_window, display.GetCurrentDisplayMode());
+    SDL_SetWindowFullscreen(m_window, desc.FULLSCREEN);
+    SDL_SyncWindow(m_window);
 
 }
 
@@ -38,9 +48,11 @@ void Window::SetShouldClose(bool value) {
 
 void Window::SetWindowed(ApplicationDesc& desc, Display& display) {
 
+    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SyncWindow(m_window);
     SDL_SetWindowFullscreen(m_window, false);
     SDL_SetWindowSize(m_window, desc.WIDTH / display.GetScaling() * desc.WINDOWED_SCALE, desc.HEIGHT / display.GetScaling() * desc.WINDOWED_SCALE);
-    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SyncWindow(m_window);
 
 }
 
@@ -53,12 +65,15 @@ void Window::SetFullscreen(ApplicationDesc& desc, Display& display) {
 
     SDL_SetWindowFullscreenMode(m_window, modes[0]);
     SDL_SetWindowFullscreen(m_window, true);
+    SDL_SyncWindow(m_window);
 
 }
 
 void Window::SetWindowSize(ApplicationDesc& desc, Display& display) {
 
     SDL_SetWindowSize(m_window, desc.WIDTH / display.GetScaling() * desc.WINDOWED_SCALE, desc.HEIGHT / display.GetScaling() * desc.WINDOWED_SCALE);
+    SDL_SetWindowPosition(m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SyncWindow(m_window);
 
 }
 

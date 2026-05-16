@@ -29,9 +29,9 @@ public:
     void Initialize(Display& display, Window& window, ApplicationDesc& desc);
     void Shutdown(ApplicationDesc& desc);
 
-    void RecordCommandBuffer(uint32_t imageIndex, ApplicationDesc& desc);
+    void RecordCommandBuffer(VkDevice device, uint32_t imageIndex, ApplicationDesc& desc);
 
-    void Render(ApplicationDesc& desc);
+    void Render(VkDevice device, ApplicationDesc& desc);
 
     void RecreateSwapchain(Display& display, Window& window, ApplicationDesc& desc);
     void RecreateRenderer(Display& display, Window& window, ApplicationDesc& desc);
@@ -51,6 +51,7 @@ private:
     VkSampleCountFlagBits m_currentMsaa = VK_SAMPLE_COUNT_1_BIT;
     VulkanDevice m_device;
     VulkanSwapchain m_swapchain;
+    uint32_t m_currentFrame = 0;
 
     // SCENE
     VulkanSceneRenderPass m_sceneRenderPass;

@@ -11,6 +11,7 @@ enum class Key {
     M,
     V,
     S,
+    E,
 
     Equals,
     Minus,

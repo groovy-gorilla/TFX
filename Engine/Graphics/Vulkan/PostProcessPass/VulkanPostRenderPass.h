@@ -21,7 +21,8 @@ public:
         RenderTarget& inputColor,
         VkFramebuffer framebuffer,
         VkExtent2D extent,
-        ApplicationDesc& desc);
+        ApplicationDesc& desc,
+        float exposure);
 
     [[nodiscard]] VkRenderPass Get() const { return m_renderPass; }
     [[nodiscard]] VulkanTextureDescriptor GetDescriptor() const { return m_sceneDescriptor; }

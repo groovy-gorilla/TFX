@@ -44,11 +44,19 @@ void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
     m_sceneDescriptor.Create(device, desc.MAX_FRAMES_IN_FLIGHT, sceneColor, sceneDepth, TextureFilter::Linear);
     m_descriptorSetLayout = m_sceneDescriptor.GetLayout();
 
+    // PUSH CONSTANT
+    VkPushConstantRange push{};
+    push.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    push.offset = 0;
+    push.size = sizeof(float);
+
     // PIPELINE LAYOUT
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layoutInfo.setLayoutCount = 1;
     layoutInfo.pSetLayouts = &m_descriptorSetLayout;
+    layoutInfo.pushConstantRangeCount = 1;
+    layoutInfo.pPushConstantRanges = &push;
 
     vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_pipelineLayout);
 
@@ -169,7 +177,9 @@ void VulkanSSAARenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
 }
 
-void VulkanSSAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D extent, uint32_t currentFrame) {
+void VulkanSSAARenderPass::Render(VkCommandBuffer commandBuffer, VkExtent2D extent, uint32_t currentFrame, float exposure) {
+
+    vkCmdPushConstants(commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &exposure);
 
     VkClearValue clear{};
     clear.color = { 0.0f, 0.0f, 0.0f, 1.0f };

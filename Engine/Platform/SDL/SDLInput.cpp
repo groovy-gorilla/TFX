@@ -9,6 +9,7 @@ Key TranslateKey(SDL_Scancode scancode) {
         case SDL_SCANCODE_M: return Key::M;
         case SDL_SCANCODE_V: return Key::V;
         case SDL_SCANCODE_S: return Key::S;
+        case SDL_SCANCODE_E: return Key::E;
         case SDL_SCANCODE_1: return Key::Num1;
         case SDL_SCANCODE_2: return Key::Num2;
 

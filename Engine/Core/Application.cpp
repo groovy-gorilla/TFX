@@ -25,6 +25,7 @@ void Application::Run() {
     actions.Bind("AA", Key::M);
     actions.Bind("VSync", Key::V);
     actions.Bind("Screenshot", Key::S);
+    actions.Bind("Exposure", Key::E);
     actions.Bind("ResolutionUp", Key::Equals);
     actions.Bind("ResolutionDown", Key::Minus);
 
@@ -112,6 +113,19 @@ void Application::Run() {
             frames = 0;
             timer = 0.0f;
         }
+
+        // HDR EXPOSURE
+        static bool explosion = true;
+        if (actions.IsActionPressed(m_input, "Exposure")) {
+            if (explosion) {
+                m_graphics.GetRenderer().SetTargetExposure(5.0f);
+                explosion = false;
+            } else {
+                m_graphics.GetRenderer().SetTargetExposure(1.0f);
+                explosion = true;
+            }
+        }
+        m_graphics.GetRenderer().UpdateExposure(deltaTime);
 
         // ASPECT RATIO
         if (actions.IsActionPressed(m_input, "Aspect")) {

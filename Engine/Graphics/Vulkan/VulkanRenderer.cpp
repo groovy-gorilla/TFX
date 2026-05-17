@@ -29,8 +29,10 @@ void VulkanRenderer::Initialize(Display& display, Window& window, ApplicationDes
     m_commands.Create(m_device.Get(), m_physicalDevice.GetGraphicsQueueFamily(), static_cast<uint32_t>(m_swapchain.GetImages().size()));
     m_sync.Create(m_device.Get(), desc.MAX_FRAMES_IN_FLIGHT);
 
+
+
     // SCENE
-    m_sceneRenderPass.Create(m_device.Get(), m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES);
+    m_sceneRenderPass.Create(m_device.Get(), m_HDRFormat, FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES);
     m_sceneResources.Create(m_physicalDevice.Get(), m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc, m_sceneRenderPass.Get());
     m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.AA_MODE, desc.MSAA_SAMPLES);
 
@@ -102,7 +104,7 @@ void VulkanRenderer::RecordCommandBuffer(VkDevice device, uint32_t imageIndex, A
 
     // SSAA
     if (desc.AA_MODE == AntiAliasing::SSAA || desc.AA_MODE == AntiAliasing::SSAA_SMAA) {
-        m_ssaaRenderPass.Render(commandBuffer, m_renderExtent, m_sync.GetCurrentFrame());
+        m_ssaaRenderPass.Render(commandBuffer, m_renderExtent, m_sync.GetCurrentFrame(), m_exposure);
         currentColor = &m_sceneResources.SSAAColor;
     }
 
@@ -113,7 +115,7 @@ void VulkanRenderer::RecordCommandBuffer(VkDevice device, uint32_t imageIndex, A
     }
 
     // POST PASS
-    m_postRenderPass.Render(device, m_sync.GetCurrentFrame(), commandBuffer, *currentColor, m_postResources.GetFramebuffer(imageIndex), m_swapchain.GetExtent(), desc);
+    m_postRenderPass.Render(device, m_sync.GetCurrentFrame(), commandBuffer, *currentColor, m_postResources.GetFramebuffer(imageIndex), m_swapchain.GetExtent(), desc, m_exposure);
 
     // END COMMAND BUFFER
     vkEndCommandBuffer(commandBuffer);
@@ -219,7 +221,7 @@ void VulkanRenderer::RecreateRenderer(Display& display, Window& window, Applicat
     m_swapchain.Create(m_physicalDevice.Get(), m_device.Get(), m_surface.Get(), m_windowExtent, m_physicalDevice.GetGraphicsQueueFamily(), m_physicalDevice.GetPresentQueueFamily(), desc.VSYNC);
 
     // SCENE
-    m_sceneRenderPass.Create(m_device.Get(), m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES);
+    m_sceneRenderPass.Create(m_device.Get(), m_HDRFormat, FindDepthFormat(m_physicalDevice.Get()), desc.AA_MODE, desc.MSAA_SAMPLES);
     m_sceneResources.Create(m_physicalDevice.Get(), m_device.Get(), m_renderExtent, m_swapchain.GetImageFormat(), FindDepthFormat(m_physicalDevice.Get()), desc, m_sceneRenderPass.Get());
     m_scenePipeline.Create(m_device.Get(), m_sceneRenderPass.Get(), desc.AA_MODE, desc.MSAA_SAMPLES);
 
@@ -232,6 +234,19 @@ void VulkanRenderer::RecreateRenderer(Display& display, Window& window, Applicat
     // POST
     m_postRenderPass.Create(m_device.Get(), m_windowExtent, m_swapchain.GetImageFormat(), desc);
     m_postResources.Create(m_device.Get(), m_postRenderPass.Get(), m_windowExtent, m_swapchain.GetImageViews());
+
+}
+
+void VulkanRenderer::UpdateExposure(float deltaTime) {
+
+    m_exposure += (m_targetExposure - m_exposure) * deltaTime * 3.0f;
+    //m_exposure = std::lerp(m_exposure, m_targetExposure, deltaTime * 2.0f);
+
+}
+
+void VulkanRenderer::SetTargetExposure(float exposure) {
+
+    m_targetExposure = exposure;
 
 }
 

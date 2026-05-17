@@ -37,6 +37,9 @@ public:
     void RecreateSwapchain(Display& display, Window& window, ApplicationDesc& desc);
     void RecreateRenderer(Display& display, Window& window, ApplicationDesc& desc);
 
+    void UpdateExposure(float deltaTime);
+    void SetTargetExposure(float exposure);
+
     void TakeScreenshot(uint32_t imageIndex);
 
     VkDevice GetDevice() { return m_device.Get(); }
@@ -74,6 +77,11 @@ private:
     // EXTENT
     VkExtent2D m_renderExtent = {};
     VkExtent2D m_windowExtent = {};
+
+    // HDR
+    VkFormat m_HDRFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+    float m_exposure = 1.0f;
+    float m_targetExposure = 1.0f;
 
 
 

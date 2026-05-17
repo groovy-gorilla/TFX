@@ -42,13 +42,21 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
     m_sceneDescriptor.Create(device, desc.MAX_FRAMES_IN_FLIGHT, desc.FILTER);
     m_descriptorSetLayout = m_sceneDescriptor.GetLayout();
 
+    // PUSH CONSTANT
+    VkPushConstantRange push{};
+    push.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    push.offset = 0;
+    push.size = sizeof(float);
+
     // PIPELINE LAYOUT
     VkPipelineLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layoutInfo.setLayoutCount = 1;
     layoutInfo.pSetLayouts = &m_descriptorSetLayout;
+    layoutInfo.pushConstantRangeCount = 1;
+    layoutInfo.pPushConstantRanges = &push;
 
-    vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_pipelineLayout);
+    VK_CHECK(vkCreatePipelineLayout(device, &layoutInfo, nullptr, &m_pipelineLayout));
 
     // SHADERS
     std::string filename;
@@ -176,7 +184,9 @@ void VulkanPostRenderPass::Create(VkDevice device, VkExtent2D extent, VkFormat s
 
 }
 
-void VulkanPostRenderPass::Render(VkDevice device, uint32_t frameIndex, VkCommandBuffer commandBuffer, RenderTarget& inputColor, VkFramebuffer framebuffer, VkExtent2D extent, ApplicationDesc& desc) {
+void VulkanPostRenderPass::Render(VkDevice device, uint32_t frameIndex, VkCommandBuffer commandBuffer, RenderTarget& inputColor, VkFramebuffer framebuffer, VkExtent2D extent, ApplicationDesc& desc, float exposure) {
+
+    vkCmdPushConstants(commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &exposure);
 
     m_sceneDescriptor.UpdateColor(device, frameIndex, inputColor, desc.FILTER);
 
